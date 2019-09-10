@@ -32,7 +32,7 @@ posterior <- prior * likelihood/sum(prior * likelihood)
 
 sample_posterior <- sample(p_grid, prob = posterior, size = 10000, replace = T)
 
-PI(sample_posterior,prob=0.5)
+PI(sample_posterior,prob=0.5)  ## This is basically quantile on posterior samples
 
 HPDI(sample_posterior,prob=0.5)
 
