@@ -144,3 +144,88 @@ height.value <- sapply(weight, function(x){mapply(calculate_height,post$a,post$b
 height.mean <- apply(height.value,2,mean)
 
 plot(height.mean,weight)
+
+# Q1
+
+weight_data <- c(46.95,43.72,64.78,32.59,54.63)
+
+expected_height <- sapply(weight_data, function(x){mapply(calculate_height,post$a,post$b,post$sigma,x)})
+
+height_mean <- apply(expected_height,2,mean)
+
+height_hdpi <- apply(expected_height,2,HPDI)
+
+d3 <- d[d$age < 18,]
+
+height_child <- map(
+  alist(
+    height ~ dnorm(mu,sigma),
+    mu <- a + b*weight,
+    a ~ dnorm(100,50),
+    b ~ dnorm(0,20),
+    sigma ~ dunif(0,50)
+  ), data = d3
+)
+
+post <- extract.samples(height_child)
+
+weight_simulate <- seq(5,43,by=1)
+
+mu.value <- sapply(weight_simulate, function(x){mapply(calculate_mu,post$a,post$b,x)}) 
+
+expec.hgt <- sapply(weight_simulate, function(x){mapply(calculate_height,post$a,post$b,post$sigma,x)})
+
+mu.value.hdpi <- apply(mu.value,2,HPDI)
+
+expec.hgt.hdpi <- apply(expec.hgt,2,HPDI)
+
+plot(y=d3$height, x=d3$weight)
+abline(coef(height_child)[1],coef(height_child)[2])
+shade(mu.value.hdpi,weight_simulate)
+shade(expec.hgt.hdpi,weight_simulate,col = col.alpha("green",0.15))
+
+## Q
+
+full_model <- map(
+  alist(
+    height ~ dnorm(mu,sigma),
+    mu <- a + b*log(weight),
+    a ~ dnorm(178,100),
+    b ~ dnorm(0,100),
+    sigma ~ dunif(0,50)
+  ), data = d
+)
+
+coef(full_model)
+
+plot(d$height,d$weight)
+
+plot(d$height,log(d$weight))  ### This seems more linear
+
+post <- extract.samples(full_model)
+
+weight_simulate <- seq(5,178,by=1)
+
+calculate_mu_log <- function(a,b,w){
+  return(a+b*log(w))
+}
+
+calculate_height_log <- function(a,b,s,w){
+  #print(a+b*w)
+  return(rnorm(1,a+b*log(w),s))
+}
+
+mu.value <- sapply(weight_simulate, function(x){mapply(calculate_mu_log,post$a,post$b,x)}) 
+
+expec.hgt <- sapply(weight_simulate, function(x){mapply(calculate_height_log,post$a,post$b,post$sigma,x)})
+
+mu.value.hdpi <- apply(mu.value,2,HPDI,0.97)
+
+mu.value.mean <- apply(mu.value,2,mean)
+
+expec.hgt.hdpi <- apply(expec.hgt,2,HPDI,0.97)
+
+plot(y=d$height, x=d$weight)
+lines(x=weight_simulate,y=mu.value.mean)
+shade(mu.value.hdpi,weight_simulate)
+shade(expec.hgt.hdpi,weight_simulate,col = col.alpha("green",0.15))
